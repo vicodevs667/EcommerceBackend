@@ -5,11 +5,15 @@ import { User } from '../users/user.entity';
 import { RegisterAuthDto } from './dto/register-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
 import { compare } from 'bcrypt';
+import { JwtService } from '@nestjs/jwt'
 
 @Injectable()
 export class AuthService {
 
-    constructor(@InjectRepository(User) private usersRepository: Repository<User>) {}
+    constructor(
+        @InjectRepository(User) private usersRepository: Repository<User>,
+        private jwtService: JwtService
+    ) {}
 
     async register(user: RegisterAuthDto) {
 
@@ -29,7 +33,17 @@ export class AuthService {
         }
 
         const newUser = this.usersRepository.create(user);
-        return this.usersRepository.save(newUser)
+        const userSaved =  await this.usersRepository.save(newUser)
+
+        const payload = { id: userSaved.id, name: userSaved.name };
+        const token = this.jwtService.sign(payload);
+        const data = {
+            user: userSaved,
+            token: 'Bearer ' + token
+        }
+        
+        delete data.user.password
+        return data;
     }
 
     async login(loginData: LoginAuthDto) {
@@ -44,8 +58,17 @@ export class AuthService {
         if (!isPasswordValid) {
             return new HttpException('La contraseña es incorrecta', HttpStatus.FORBIDDEN)
         }
+
+        const payload = { id: userFound.id, name: userFound.name };
+        const token = this.jwtService.sign(payload);
+        const data = {
+            user: userFound,
+            token: 'Bearer ' + token
+        }
         
-        return userFound;
+        delete data.user.password
+
+        return data;
 
     }
 }

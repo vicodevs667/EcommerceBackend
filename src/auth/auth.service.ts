@@ -43,7 +43,7 @@ export class AuthService {
         }
         
         delete data.user.password
-        return data;
+        return data
     }
 
     async login(loginData: LoginAuthDto) {
